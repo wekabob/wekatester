@@ -393,27 +393,47 @@ with pushd( os.path.dirname( progname ) ):
 
         #print json.dumps(fio_output, indent=8, sort_keys=True)
         #print fio_output
-        bw_bytes = []
-        iops = []
-        latency = []
+        #bw_bytes = []
+        #iops = []
+        #latency = []
 
         jobs = fio_output["client_stats"]
         print "Job is " + jobs[0]["jobname"] + " " + jobs[0]["desc"]
 
         # gather interesting stats so we don't have to hunt for them later
-        for stats in jobs:
-            bw_bytes.append( stats["read"]["bw_bytes"] )
-            iops.append( stats["read"]["iops"] )
-            latency.append( stats["read"]["lat_ns"]["mean"] )
+        #for stats in jobs:
+        #    bw_bytes.append( stats["read"]["bw_bytes"] )
+        #    iops.append( stats["read"]["iops"] )
+        #    latency.append( stats["read"]["lat_ns"]["mean"] )
 
+        bw={}
+        iops={}
+        latency={}
+
+        # ok, it's a hack, but we're really only interested in the last one.
+        for stats in jobs:
+            try:
+                bw["read"] = stats["read"]["bw_bytes"]
+                bw["write"] = stats["write"]["bw_bytes"]
+                iops = stats["read"]["iops"]
+                latency["read"] = stats["read"]["lat_ns"]["mean"]
+                latency["write"] = stats["write"]["lat_ns"]["mean"]
+            except:     # don't worry about keyerrors.
+                pass
+                
         if reportitem["bandwidth"]:
-            print "    total bandwidth: " + format_units_bytes( bw_bytes[hostcount] ) + "/s"
-            print "    avg bandwidth: " + format_units_bytes( float( bw_bytes[hostcount] )/float( hostcount) ) + "/s per host"
+            print "    read bandwidth: " + format_units_bytes( bw["read"] ) + "/s"
+            print "    write bandwidth: " + format_units_bytes( bw["write"] ) + "/s"
+            print "    total bandwidth: " + format_units_bytes( bw["read"] + bw["write"] ) + "/s"
+            print "    avg bandwidth: " + format_units_bytes( float( bw["read"] + bw["write"] )/float( hostcount) ) + "/s per host"
         if reportitem["iops"]:
-            print "    total iops: " + ("{:,}".format(int(iops[len(jobs)-1]))) + "/s"
-            print "    avg iops: " + ("{:,}".format(int(iops[len(jobs)-1]) /hostcount)) + "/s per host"
+            print "    total iops: " + ("{:,}".format(int(iops))) + "/s"
+            print "    avg iops: " + ("{:,}".format(int(iops) /hostcount)) + "/s per host"
         if reportitem["latency"]:
-            print "    latency: " +  format_units_ns( float( latency[len(jobs)-1] ) )
+            print "    read latency: " +  format_units_ns( float( latency["read"] ) )
+            print "    write latency: " +  format_units_ns( float( latency["write"] ) )
+            if latency["read"] != 0 and latency["read"] != 0:
+                print "    avg latency: " +  format_units_ns( float( latency["write"] + latency["read"] / 2 ) )
 
     print
     print "Tests complete."
