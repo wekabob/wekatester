@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import json
 import decimal
@@ -22,7 +22,7 @@ def pushd(new_dir):
     finally:
         os.chdir(previous_dir)
 
-# print something without a newline
+# print( something without a newline )
 def announce( text ):
     sys.stdout.flush()
     sys.stdout.write(text + " ")
@@ -77,7 +77,7 @@ def run_shell_command( command ):
     try:
         output = subprocess.check_output( command, shell=True )
     except subprocess.CalledProcessError as err:
-        print sys.argv[0] + ": " + str( err )
+        print( sys.argv[0] + ": " + str( err ) )
         sys.exit(1)
 
     return output
@@ -95,7 +95,7 @@ parser.add_argument("-s", "--servers", dest='use_servers_flag', action='store_tr
 args = parser.parse_args()
 
 if args.use_clients_flag and args.use_servers_flag:
-    print "Error: you must specify either clients or servers, not both"
+    print( "Error: you must specify either clients or servers, not both" )
     sys.exit(1)
 
 # default to servers
@@ -106,16 +106,16 @@ if not args.use_clients_flag and not args.use_servers_flag:
 # Make sure weka is installed
 weka_status = run_json_shell_command( 'weka status -J' )
 
-print "Testing Weka cluster " + weka_status["name"]
-print run_shell_command( "date" )
-print "Cluster is v" + weka_status["release"]
+print( "Testing Weka cluster " + weka_status["name"] )
+print( run_shell_command( "date" ) )
+print( "Cluster is v" + weka_status["release"] )
 
 if weka_status["io_status"] != "STARTED":
-    print "Weka not healthy - not started."
+    print( "Weka not healthy - not started." )
     sys.exit()
 
 if weka_status["is_cluster"] != True:
-    print "Weka not healthy - cluster not formed?"
+    print( "Weka not healthy - cluster not formed?" )
     sys.exit()
 
 # inserted to capture the number of servers
@@ -136,127 +136,127 @@ wekaver = weka_status["release"]
 #        numcpu = attrs["data"]
 cpu_attrs = {}
 lscpu_out = run_shell_command( 'lscpu' )
-#print lscpu_out
-#print lscpu_out.split("\n")
+#print( lscpu_out )
+#print( lscpu_out.split("\n") )
 for line in lscpu_out.split("\n"):
-	line_list = line.split(":")
-	if len( line_list[0] ) >= 1:	# there's a blank line at the end?
-		cpu_attrs[line_list[0]] = line_list[1].strip()
+    line_list = line.split(":")
+    if len( line_list[0] ) >= 1:    # there's a blank line at the end?
+        cpu_attrs[line_list[0]] = line_list[1].strip()
 
 cpuname = cpu_attrs["Model name"]
 numcpu = cpu_attrs["CPU(s)"]
-#print cpu_attrs
-	
+#print( cpu_attrs )
+    
 
 
 # get a list of server nodes
 #all_hosts = run_json_shell_command( 'weka cluster host -J' )
 #weka_hosts = {}
 #if type ( all_hosts ) == list:
-#	for hostconfig in all_hosts:
-#	    hostid = hostconfig["host_id"]
-#	    if hostconfig["cores"] != hostconfig["frontend_dedicated_cores"]:
-#		# must be a server - not all FEs
-#		weka_hosts[hostid] = hostconfig
+#    for hostconfig in all_hosts:
+#        hostid = hostconfig["host_id"]
+#        if hostconfig["cores"] != hostconfig["frontend_dedicated_cores"]:
+#        # must be a server - not all FEs
+#        weka_hosts[hostid] = hostconfig
 #else:
-#	for hostid, hostconfig in all_hosts.items():
-#	    if hostconfig["cores"] != hostconfig["frontend_dedicated_cores"]:
-#		# must be a server - not all FEs
-#		weka_hosts[hostid] = hostconfig
+#    for hostid, hostconfig in all_hosts.items():
+#        if hostconfig["cores"] != hostconfig["frontend_dedicated_cores"]:
+#        # must be a server - not all FEs
+#        weka_hosts[hostid] = hostconfig
 
 if args.use_servers_flag:
-    print "Using weka servers to generate load (converged mode)"
-    all_hosts = run_json_shell_command( 'weka cluster host -b -J' )	# just the backends
+    print( "Using weka servers to generate load (converged mode)" )
+    all_hosts = run_json_shell_command( 'weka cluster host -b -J' )    # just the backends
 else:
-    print "Using weka clients to generate load (dedicated mode)"
-    all_hosts = run_json_shell_command( 'weka cluster host -c -J' )	# just the clients
+    print( "Using weka clients to generate load (dedicated mode)" )
+    all_hosts = run_json_shell_command( 'weka cluster host -c -J' )    # just the clients
 
 weka_hosts = {}
 if type ( all_hosts ) == list:
-	for hostconfig in all_hosts:
-	    hostid = hostconfig["host_id"]
-	    weka_hosts[hostid] = hostconfig
+    for hostconfig in all_hosts:
+        hostid = hostconfig["host_id"]
+        weka_hosts[hostid] = hostconfig
 else:
-	for hostid, hostconfig in all_hosts.items():
-	    weka_hosts[hostid] = hostconfig
+    for hostid, hostconfig in all_hosts.items():
+        weka_hosts[hostid] = hostconfig
 
 
 hostcount = len( weka_hosts )
 hostips = []
-#print "Hosts detected:"
+#print( "Hosts detected:" )
 for hostid, hostconfig in sorted( weka_hosts.items() ):
-    #print "HostId: " + hostid
+    #print( "HostId: " + hostid )
     hostips.append( hostconfig["host_ip"] )  # create a list of host ips that we'll mount the fs and run fio on
 
-print str( len( hostips ) ) + " weka hosts detected"
+print( str( len( hostips ) ) + " weka hosts detected" )
 
 
-print "This cluster has " + str( weka_status["capacity"]["total_bytes"]/1024/1024/1024/1024 ) + " TB of capacity and " + \
-    str( weka_status["capacity"]["unprovisioned_bytes"]/1024/1024/1024/1024 ) + " TB of unprovisioned capacity"
+print( "This cluster has " + str( weka_status["capacity"]["total_bytes"]/1024/1024/1024/1024 ) + " TB of capacity and " + \
+    str( weka_status["capacity"]["unprovisioned_bytes"]/1024/1024/1024/1024 ) + " TB of unprovisioned capacity" )
 
 # Get a list of filesystems to work on, create as needed
 weka_fs = run_json_shell_command( 'weka fs -J' )
 
-#print json.dumps(weka_fs, indent=8, sort_keys=True)
+#print( json.dumps(weka_fs, indent=8, sort_keys=True) )
 
 # Is there an existing fs?
 wekatester_fs = False
 wekatester_group = False
 if type ( weka_fs ) == list:
     for fsconfig in sorted( weka_fs ):    # do we already have a wekatester fs?
-	#print "Looking at " + fsid
-	#print fsconfig["group_name"]
-	if fsconfig["group_name"] == "wekatester-group":
-	    wekatester_group = True
-	if fsconfig["name"] == "wekatester-fs":
-	    wekatester_fs = True
-else:
-    for fsid, fsconfig in sorted( weka_fs.items() ):    # do we already have a wekatester fs?
-	#print "Looking at " + fsid
-	#print fsconfig["group_name"]
-	if fsconfig["group_name"] == "wekatester-group":
-	    wekatester_group = True
-	if fsconfig["name"] == "wekatester-fs":
-	    wekatester_fs = True
+    #print( "Looking at " + fsid )
+    #print( fsconfig["group_name"] )
+        if fsconfig["group_name"] == "wekatester-group":
+            wekatester_group = True
+        if fsconfig["name"] == "wekatester-fs":
+            wekatester_fs = True
+    else:
+        for fsid, fsconfig in sorted( weka_fs.items() ):    # do we already have a wekatester fs?
+            #print( "Looking at " + fsid )
+            #print( fsconfig["group_name"] )
+            if fsconfig["group_name"] == "wekatester-group":
+                wekatester_group = True
+            if fsconfig["name"] == "wekatester-fs":
+                wekatester_fs = True
 
 if wekatester_group == False:   # did we find the group when we looked for the fs?
     weka_fs_group = run_json_shell_command( 'weka fs group -J' )
 
     if type ( weka_fs_group ) == list:
-	for groupconfig in sorted( weka_fs_group ):    # do we already have a wekatester fs group?
-	    #print "looking at " + fsgroupid + " " + groupconfig["name"]
-	    if groupconfig["name"] == "wekatester-group":
-		wekatester_group = True
-		print "wekatester-group exists"
-    else:
-	for fsgroupid, groupconfig in sorted( weka_fs_group.items() ):    # do we already have a wekatester fs group?
-	    #print "looking at " + fsgroupid + " " + groupconfig["name"]
-	    if groupconfig["name"] == "wekatester-group":
-		wekatester_group = True
-		print "wekatester-group exists"
+        for groupconfig in sorted( weka_fs_group ):    # do we already have a wekatester fs group?
+            #print( "looking at " + fsgroupid + " " + groupconfig["name"] )
+            if groupconfig["name"] == "wekatester-group":
+                wekatester_group = True
+                print( "wekatester-group exists" )
+        else:
+            for fsgroupid, groupconfig in sorted( weka_fs_group.items() ):    # do we already have a wekatester fs group?
+                #print( "looking at " + fsgroupid + " " + groupconfig["name"] )
+                if groupconfig["name"] == "wekatester-group":
+                    wekatester_group = True
+                    print( "wekatester-group exists" )
 
 
 # do we need to create one?
 if wekatester_group == False:
-    print "Creating wekatester-group..."
+    print( "Creating wekatester-group..." )
     run_json_shell_command( 'weka fs group create wekatester-group -J' )
 else:
-    print "Using existing wekatester-group"
+    print( "Using existing wekatester-group" )
 
 if wekatester_fs == False:
     unprovisioned = weka_status["capacity"]["unprovisioned_bytes"]/1024/1024/1024/1024
-    if unprovisioned < 1:		# vince - for testing.  Should be about 5TB?
-        print sys.argv[0] + ": " + "Not enough unprovisioned capacity - please free at least 5TB of capacity"
+    if unprovisioned < 1:        # vince - for testing.  Should be about 5TB?
+        print( sys.argv[0] + ": " + "Not enough unprovisioned capacity - please free at least 5TB of capacity" )
         sys.exit(1)
 
-    print "Creating wekatester-fs..."
-    run_json_shell_command( 'weka fs create wekatester-fs wekatester-group 1TB -J' )	# vince - for testing.  Should be about 5TB?
+    print( "Creating wekatester-fs..." )
+    run_json_shell_command( 'weka fs create wekatester-fs wekatester-group 1TB -J' )    # vince - for testing.  Should be about 5TB?
 else:
-    print "Using existing wekatester-fs"
+    print( "Using existing wekatester-fs" )
 
 # make sure the wekatester fs is mounted locally - just in case we're running on a machine not part of the testing.
 
-print "Mount wekatester fs locally..."
+print( "Mount wekatester fs locally..." )
 run_shell_command( "sudo bash -c 'if [ ! -d /mnt/wekatester ]; then mkdir /mnt/wekatester; fi'" )
 command="mount | grep wekatester-fs"
 try:
@@ -268,9 +268,9 @@ except subprocess.CalledProcessError as err:
 
 # setup phase complete... now we get to work
 #        uname = ssh_token[host]["uname"]
-#        print uname
+#        print( uname )
 #        output = (uname)("-a")
-#        print output
+#        print( output )
 #        sys.exit()
 
 # do a pushd so we know where we are
@@ -292,7 +292,7 @@ with pushd( os.path.dirname( progname ) ):
             announce( host )
         except:
             print
-            print "Error opening ssh session - have you configured passwordless ssh?"
+            print( "Error opening ssh session - have you configured passwordless ssh?" )
             sys.exit( 1 )
 
     print
@@ -300,26 +300,26 @@ with pushd( os.path.dirname( progname ) ):
     # mount filesystems
     announce( "Mounting wekatester-fs on hosts:" )
     for host, s in host_session.items():
-	#print "Check that /mnt/wekatester mountpoint dir is present on host " + host
+        #print( "Check that /mnt/wekatester mountpoint dir is present on host " + host )
         retcode = s.run( "sudo bash -c 'if [ ! -d /mnt/wekatester ]; then mkdir /mnt/wekatester; fi'" )
-	#print retcode
-	if retcode[0] == 1:
-	    print "Error creating /mnt/wekatester on node " + host
-        retcode = s.run( "mount | grep wekatester-fs", retcode=None )
+        #print( retcode )
         if retcode[0] == 1:
-            # not mounted
-	    announce( host )
-            s.run( "sudo mount -t wekafs wekatester-fs /mnt/wekatester" )
-            s.run( "sudo chmod 777 /mnt/wekatester" )
-        #else:
-        #    print "wekatester-fs already mounted on host " + host
+            print( "Error creating /mnt/wekatester on node " + host )
+            retcode = s.run( "mount | grep wekatester-fs", retcode=None )
+            if retcode[0] == 1:
+                # not mounted
+                announce( host )
+                s.run( "sudo mount -t wekafs wekatester-fs /mnt/wekatester" )
+                s.run( "sudo chmod 777 /mnt/wekatester" )
+            #else:
+            #    print( "wekatester-fs already mounted on host " + host )
 
     print
         
     # do we need to build fio?
     if not os.path.exists( "./fio/fio" ):
         with pushd( "./fio" ):
-            print "Building fio"
+            print( "Building fio" )
             run_shell_command( './configure' )
             run_shell_command( 'make' )
 
@@ -342,10 +342,10 @@ with pushd( os.path.dirname( progname ) ):
     fio_scripts = [f for f in glob.glob( "./fio-jobfiles/[0-9]*")]
     fio_scripts.sort()
 
-    print "setup complete."
+    print( "setup complete." )
     print
-    print "Starting tests on " + str(hostcount) + " weka hosts"
-    print "On " + numcpu + " cores of " + cpuname + " per host"   # assuming they're all the same...
+    print( "Starting tests on " + str(hostcount) + " weka hosts" )
+    print( "On " + numcpu + " cores of " + cpuname + " per host" )  # assuming they're all the same... )
 
 
     for script in fio_scripts:
@@ -371,13 +371,13 @@ with pushd( os.path.dirname( progname ) ):
                     # found a "# report" directive in the file
                     for keyword in linelist:
                         if not keyword in reportitem.keys():
-                            print "Syntax error in # report directive in " + script + ", line " + str( lineno +1 ) + ": keyword '" + keyword + "' undefined. Ignored."
+                            print( "Syntax error in # report directive in " + script + ", line " + str( lineno +1 ) + ": keyword '" + keyword + "' undefined. Ignored." )
                         else:
                             reportitem[keyword] = True
 
 
         if not reportitem["bandwidth"] and not reportitem["iops"] and not reportitem["latency"]:
-            print "NOTE: No valid # report specification in " + script + "; reporting all"
+            print( "NOTE: No valid # report specification in " + script + "; reporting all" )
             reportitem = { "bandwidth":True, "latency":True, "iops":True }  # set to all
 
 
@@ -388,17 +388,17 @@ with pushd( os.path.dirname( progname ) ):
 
     
         print
-        print "starting fio script " + script
+        print( "starting fio script " + script )
         fio_output = run_json_shell_command( './fio/fio' + script_args + " --output-format=json" )
 
-        #print json.dumps(fio_output, indent=8, sort_keys=True)
-        #print fio_output
+        #print( json.dumps(fio_output, indent=8, sort_keys=True) )
+        #print( fio_output )
         bw_bytes = []
         iops = []
         latency = []
 
         jobs = fio_output["client_stats"]
-        print "Job is " + jobs[0]["jobname"] + " " + jobs[0]["desc"]
+        print( "Job is " + jobs[0]["jobname"] + " " + jobs[0]["desc"] )
 
         # gather interesting stats so we don't have to hunt for them later
         for stats in jobs:
@@ -407,16 +407,16 @@ with pushd( os.path.dirname( progname ) ):
             latency.append( stats["read"]["lat_ns"]["mean"] )
 
         if reportitem["bandwidth"]:
-            print "    total bandwidth: " + format_units_bytes( bw_bytes[hostcount] ) + "/s"
-            print "    avg bandwidth: " + format_units_bytes( float( bw_bytes[hostcount] )/float( hostcount) ) + "/s per host"
+            print( "    total bandwidth: " + format_units_bytes( bw_bytes[hostcount] ) + "/s" )
+            print( "    avg bandwidth: " + format_units_bytes( float( bw_bytes[hostcount] )/float( hostcount) ) + "/s per host" )
         if reportitem["iops"]:
-            print "    total iops: " + ("{:,}".format(int(iops[len(jobs)-1]))) + "/s"
-            print "    avg iops: " + ("{:,}".format(int(iops[len(jobs)-1]) /hostcount)) + "/s per host"
+            print( "    total iops: " + ("{:,}".format(int(iops[len(jobs)-1]))) + "/s" )
+            print( "    avg iops: " + ("{:,}".format(int(iops[len(jobs)-1]) /hostcount)) + "/s per host" )
         if reportitem["latency"]:
-            print "    latency: " +  format_units_ns( float( latency[len(jobs)-1] ) )
+            print( "    latency: " +  format_units_ns( float( latency[len(jobs)-1] ) ) )
 
     print
-    print "Tests complete."
+    print( "Tests complete." )
 
     print
     announce( "Unmounting filesystems:" )
@@ -428,9 +428,9 @@ with pushd( os.path.dirname( progname ) ):
 
 
     print
-    #print "Unmount fs locally"
+    #print( "Unmount fs locally" )
     #try:
     #    run_shell_command( "sudo umount /mnt/wekatester" )
     #except:
-    #    print "FS is not mounted locally"
+    #    print( "FS is not mounted locally" )
     #print
