@@ -7,6 +7,7 @@ import glob
 import os, sys, stat
 import logging
 import subprocess
+import time
 from subprocess import Popen, PIPE, STDOUT
 from shutil import copyfile
 from contextlib import contextmanager
@@ -188,7 +189,9 @@ for hostid, hostconfig in sorted( weka_hosts.items() ):
     #print( "HostId: " + hostid )
     hostips.append( hostconfig["host_ip"] )  # create a list of host ips that we'll mount the fs and run fio on
 
+hostips.sort()
 print( str( len( hostips ) ) + " weka hosts detected" )
+
 
 
 print( "This cluster has " + str( weka_status["capacity"]["total_bytes"]/1024/1024/1024/1024 ) + " TB of capacity and " + \
@@ -299,8 +302,9 @@ with pushd( os.path.dirname( progname ) ):
 
     # mount filesystems
     announce( "Mounting wekatester-fs on hosts:" )
-    for host, s in host_session.items():
+    for host, s in sorted(host_session.items()):
         #print( "Check that /mnt/wekatester mountpoint dir is present on host " + host )
+
         retcode = s.run( "sudo bash -c 'if [ ! -d /mnt/wekatester ]; then mkdir /mnt/wekatester; fi'" )
         #print( retcode )
         if retcode[0] == 1:
@@ -330,13 +334,22 @@ with pushd( os.path.dirname( progname ) ):
     # don't need to copy the fio scripts - we can run them in place
 
     # start fio --server on all servers
+    for host, s in sorted(host_session.items()):    # make sure it's dead
+        s.run( "kill -9 `cat /tmp/fio.pid`", retcode=None )
+        s.run( "rm -f /tmp/fio.pid", retcode=None )
+
+    time.sleep( 1 )
+
     announce( "starting fio --server on hosts:" )
-    for host, s in host_session.items():
+    for host, s in sorted(host_session.items()):
         announce( host )
-        s.run( "pkill fio", retcode=None )
+        s.run( "kill -9 `cat /tmp/fio.pid`", retcode=None )
+        s.run( "rm -f /tmp/fio.pid", retcode=None )
+        #s.run( "pkill fio", retcode=None )
         s.run( "/mnt/wekatester/fio --server --daemonize=/tmp/fio.pid" )
 
     print
+    time.sleep( 1 )
 
     # get a list of script files
     fio_scripts = [f for f in glob.glob( "./fio-jobfiles/[0-9]*")]
@@ -393,37 +406,71 @@ with pushd( os.path.dirname( progname ) ):
 
         #print( json.dumps(fio_output, indent=8, sort_keys=True) )
         #print( fio_output )
-        bw_bytes = []
-        iops = []
-        latency = []
+        #bw_bytes = []
+        #iops = []
+        #latency = []
+
 
         jobs = fio_output["client_stats"]
         print( "Job is " + jobs[0]["jobname"] + " " + jobs[0]["desc"] )
 
         # gather interesting stats so we don't have to hunt for them later
-        for stats in jobs:
-            bw_bytes.append( stats["read"]["bw_bytes"] )
-            iops.append( stats["read"]["iops"] )
-            latency.append( stats["read"]["lat_ns"]["mean"] )
+        #for stats in jobs:
+        #    bw_bytes.append( stats["read"]["bw_bytes"] )
+        #    iops.append( stats["read"]["iops"] )
+        #    latency.append( stats["read"]["lat_ns"]["mean"] )
 
+        bw={}
+        iops={}
+        latency={}
+
+        # ok, it's a hack, but we're really only interested in the last one.
+        for stats in jobs:
+            try:
+                bw["read"] = stats["read"]["bw_bytes"]
+                bw["write"] = stats["write"]["bw_bytes"]
+                iops["read"] = stats["read"]["iops"]
+                iops["write"] = stats["write"]["iops"]
+                latency["read"] = stats["read"]["lat_ns"]["mean"]
+                latency["write"] = stats["write"]["lat_ns"]["mean"]
+            except:     # don't worry about keyerrors.
+                pass
+                
         if reportitem["bandwidth"]:
-            print( "    total bandwidth: " + format_units_bytes( bw_bytes[hostcount] ) + "/s" )
-            print( "    avg bandwidth: " + format_units_bytes( float( bw_bytes[hostcount] )/float( hostcount) ) + "/s per host" )
+            print( "    read bandwidth: " + format_units_bytes( bw["read"] ) + "/s" )
+            print( "    write bandwidth: " + format_units_bytes( bw["write"] ) + "/s" )
+            print( "    total bandwidth: " + format_units_bytes( bw["read"] + bw["write"] ) + "/s" )
+            print( "    avg bandwidth: " + format_units_bytes( float( bw["read"] + bw["write"] )/float( hostcount) ) + "/s per host" )
         if reportitem["iops"]:
-            print( "    total iops: " + ("{:,}".format(int(iops[len(jobs)-1]))) + "/s" )
-            print( "    avg iops: " + ("{:,}".format(int(iops[len(jobs)-1]) /hostcount)) + "/s per host" )
+            print( "    read iops: " + ("{:,}".format(int(iops["read"]))) + "/s" )
+            print( "    write iops: " + ("{:,}".format(int(iops["write"]))) + "/s" )
+            print( "    total iops: " + ("{:,}".format(int(iops["read"])+int(iops["write"]))) + "/s" )
+            print( "    avg iops: " + ("{:,}".format(int(iops["read"])+int(iops["write"]) /hostcount)) + "/s per host" )
         if reportitem["latency"]:
-            print( "    latency: " +  format_units_ns( float( latency[len(jobs)-1] ) ) )
+            print( "    read latency: " +  format_units_ns( float( latency["read"] ) ) )
+            print( "    write latency: " +  format_units_ns( float( latency["write"] ) ) )
+            if (latency["read"] > 0.0) and (latency["write"] > 0.0):
+                print( "    avg latency: " +  format_units_ns( float( latency["write"] + latency["read"] / 2 ) ) )
+
 
     print
     print( "Tests complete." )
 
     print
-    announce( "Unmounting filesystems:" )
+    announce( "killing fio slaves:" )
 
     for host, s in host_session.items():
         announce( host )
-        s.run( "pkill fio" )
+        #s.run( "pkill fio" )
+        s.run( "kill -9 `cat /tmp/fio.pid`" )
+        s.run( "rm -f /tmp/fio.pid" )
+
+    print
+    time.sleep( 1 )
+
+    announce( "Unmounting filesystems:" )
+    for host, s in host_session.items():
+        announce( host )
         s.run( "sudo umount /mnt/wekatester" )
 
 
