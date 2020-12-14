@@ -351,7 +351,7 @@ with pushd( os.path.dirname( progname ) ):
         s.run( "kill -9 `cat /tmp/fio.pid`", retcode=None )
         s.run( "rm -f /tmp/fio.pid", retcode=None )
         #s.run( "pkill fio", retcode=None )
-        s.run( "/mnt/wekatester/fio --server --daemonize=/tmp/fio.pid" )
+        s.run( "/mnt/wekatester/fio --server --alloc-size=1048576 --daemonize=/tmp/fio.pid" )
 
     print()
     time.sleep( 1 )
