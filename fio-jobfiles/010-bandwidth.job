@@ -3,22 +3,16 @@
 [fio-bandwidth-00]
 description='wekatester bandwidth workload'
 readwrite=randread
-blocksize=1Mi
-iodepth=32
-iodepth_batch=16
-iodepth_batch_complete=16
-numjobs=75
+blocksize=1m
+iodepth=1
+numjobs=32
 time_based=1
 runtime=20
 ramp_time=5
 group_reporting=1
-norandommap=1
-randrepeat=0
 ioengine=posixaio
-nrfiles=20
-filesize=9m-11m
-openfiles=100
-file_service_type=normal
+nrfiles=200
+filesize=50M
 create_serialize=0
 direct=1
 directory=/mnt/wekatester
