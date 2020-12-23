@@ -259,7 +259,7 @@ if wekatester_fs == False:
         sys.exit(1)
 
     print( "Creating wekatester-fs..." )
-    run_json_shell_command( 'weka fs create wekatester-fs wekatester-group 1TB -J' )    # vince - for testing.  Should be about 5TB?
+    run_json_shell_command( 'weka fs create wekatester-fs wekatester-group 5TB -J' )    # vince - for testing.  Should be about 5TB?
 else:
     print( "Using existing wekatester-fs" )
 
@@ -351,7 +351,7 @@ with pushd( os.path.dirname( progname ) ):
         s.run( "kill -9 `cat /tmp/fio.pid`", retcode=None )
         s.run( "rm -f /tmp/fio.pid", retcode=None )
         #s.run( "pkill fio", retcode=None )
-        s.run( "/mnt/wekatester/fio --server --daemonize=/tmp/fio.pid" )
+        s.run( "/mnt/wekatester/fio --server --alloc-size=1048576 --daemonize=/tmp/fio.pid" )
 
     print()
     time.sleep( 1 )
