@@ -176,7 +176,7 @@ numcpu = cpu_attrs["CPU(s)"]
 if args.use_servers_flag:
     print( "Using weka servers to generate load (converged mode)" )
     all_hosts = run_json_shell_command( 'weka cluster host -b -J' )    # just the backends
-elif
+elif args.use_clients_flag:
     print( "Using weka clients to generate load (dedicated mode)" )
     all_hosts = run_json_shell_command( 'weka cluster host -c -J' )    # just the clients
 else:
