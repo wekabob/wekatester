@@ -94,6 +94,8 @@ parser = argparse.ArgumentParser(description='Acceptance Test a weka cluster')
 #                    help='Server Dataplane IPs to execute on')
 parser.add_argument("-c", "--clients", dest='use_clients_flag', action='store_true', help="run fio on weka clients")
 parser.add_argument("-s", "--servers", dest='use_servers_flag', action='store_true', help="run fio on weka servers")
+parser.add_argument("-a", "--al", dest='use_all_flag', action='store_true', help="run fio on weka servers and clients")
+parser.add_argument("-o", "--output", dest='use_output_flag', action='store_true', help="run fio with output")
 
 #parser.add_argument("-v", "--verbose", dest='verbose_flag', action='store_true', help="enable verbose mode")
 
@@ -104,7 +106,7 @@ if args.use_clients_flag and args.use_servers_flag:
     sys.exit(1)
 
 # default to servers
-if not args.use_clients_flag and not args.use_servers_flag:
+if not args.use_clients_flag and not args.use_servers_flag and not args.use_all_flag:
     args.use_servers_flag = True
 
 
@@ -177,7 +179,10 @@ if args.use_servers_flag:
 else:
     print( "Using weka clients to generate load (dedicated mode)" )
     all_hosts = run_json_shell_command( 'weka cluster host -c -J' )    # just the clients
-
+else:
+    print( "Using weka clients and servers to generate load (dedicated and converged mode)" )
+    all_hosts = run_json_shell_command( 'weka cluster host -J' )    # all hosts
+    
 weka_hosts = {}
 if type ( all_hosts ) == list:
     for hostconfig in all_hosts:
@@ -404,10 +409,15 @@ with pushd( os.path.dirname( progname ) ):
         for host in hostips:
             script_args = script_args + " --client=" + host + " " + script
 
-    
-        print()
-        print( "starting fio script " + script )
-        fio_output = run_json_shell_command( './fio/fio' + script_args + " --output-format=json" )
+        if args.use_output_flag:
+            print()
+            print( "starting fio script " + script )
+            run_shell_command( "sudo bash -c 'if [ ! -d mnt/wekatester/weka_fio_out ]; then mkdir /mnt/wekatester/weka_fio_out; fi'" )
+            fio_output = run_json_shell_command( './fio/fio' + script_args + " --output-format=json" + " --output=~/fio_out/$jobname.out" )
+        else"
+            print()
+            print( "starting fio script " + script )
+            fio_output = run_json_shell_command( './fio/fio' + script_args + " --output-format=json" )
 
         #print( json.dumps(fio_output, indent=8, sort_keys=True) )
         #print( fio_output )
