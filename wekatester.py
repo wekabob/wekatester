@@ -414,7 +414,7 @@ with pushd( os.path.dirname( progname ) ):
             print( "starting fio script " + script )
             run_shell_command( "sudo bash -c 'if [ ! -d mnt/wekatester/weka_fio_out ]; then mkdir /mnt/wekatester/weka_fio_out; fi'" )
             fio_output = run_json_shell_command( './fio/fio' + script_args + " --output-format=json" + " --output=~/fio_out/$jobname.out" )
-        else"
+        else:
             print()
             print( "starting fio script " + script )
             fio_output = run_json_shell_command( './fio/fio' + script_args + " --output-format=json" )
